@@ -1,57 +1,26 @@
-/*!
- * SPDX-FileCopyrightText: 2019 Nextcloud GmbH and Nextcloud contributors
+/**
+ * SPDX-FileCopyrightText: 2019, 2025, 2026 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { NextcloudEvents } from './Event.ts'
-import type { EventBus } from './EventBus.ts'
+import type { AsyncNextcloudEvents } from './Event.ts'
+import type { EventArg } from './EventBus.ts'
 import type { EventHandler } from './EventHandler.ts'
-import type { IsUndefined } from './types.ts'
 
-import { ProxyBus } from './ProxyBus.ts'
+export type { EventArg, EventBus } from './EventBus.ts'
+export type { EventHandler } from './EventHandler.ts'
+export type { AsyncNextcloudEvents, EventSpec } from './Event.ts'
+
 import { SimpleBus } from './SimpleBus.ts'
 
-export type { EventBus } from './EventBus.ts'
-export type { EventHandler } from './EventHandler.ts'
-export type { Event, NextcloudEvents } from './Event.ts'
-
-export { ProxyBus } from './ProxyBus.ts'
-export { SimpleBus } from './SimpleBus.ts'
-
-let bus: EventBus | null = null
-
-/**
- * Get the event bus
- * If a bus was already created by an other app a proxy bus is returned
- * otherwise a new bus is created and registered globally
- */
-function getBus(): EventBus {
-	if (bus !== null) {
-		return bus
-	}
-
-	if (typeof window === 'undefined') {
-		// testing or SSR
-		return new Proxy({} as EventBus, {
-			get: () => {
-				return () => console.error('Window not available, EventBus can not be established!')
-			},
-		})
-	}
-
-	if (window.OC?._eventBus && typeof window._nc_event_bus === 'undefined') {
-		console.warn('found old event bus instance at OC._eventBus. Update your version!')
-		window._nc_event_bus = window.OC._eventBus
-	}
-
-	// Either use an existing event bus instance or create one
-	if (typeof window?._nc_event_bus !== 'undefined') {
-		bus = new ProxyBus(window._nc_event_bus)
-	} else {
-		bus = window._nc_event_bus = new SimpleBus()
-	}
-	return bus
+declare global {
+	var atRotDropAsyncNextcloudEventBus: SimpleBus
 }
+
+if (!globalThis.atRotDropAsyncNextcloudEventBus) {
+	globalThis.atRotDropAsyncNextcloudEventBus = new SimpleBus()
+}
+const bus: SimpleBus = globalThis.atRotDropAsyncNextcloudEventBus
 
 /**
  * Register an event listener
@@ -59,11 +28,11 @@ function getBus(): EventBus {
  * @param name name of the event
  * @param handler callback invoked for every matching event emitted on the bus
  */
-export function subscribe<K extends keyof NextcloudEvents>(
+export function subscribe<K extends keyof AsyncNextcloudEvents>(
 	name: K,
-	handler: EventHandler<NextcloudEvents[K]>,
-): void {
-	getBus().subscribe(name, handler)
+	handler: EventHandler<AsyncNextcloudEvents[K]>,
+) {
+	return bus.subscribe(name, handler)
 }
 
 /**
@@ -74,11 +43,11 @@ export function subscribe<K extends keyof NextcloudEvents>(
  * @param name name of the event
  * @param handler callback passed to `subscribed`
  */
-export function unsubscribe<K extends keyof NextcloudEvents>(
+export function unsubscribe<K extends keyof AsyncNextcloudEvents>(
 	name: K,
-	handler: EventHandler<NextcloudEvents[K]>,
-): void {
-	getBus().unsubscribe(name, handler)
+	handler: EventHandler<AsyncNextcloudEvents[K]>,
+) {
+	bus.unsubscribe(name, handler)
 }
 
 /**
@@ -87,11 +56,67 @@ export function unsubscribe<K extends keyof NextcloudEvents>(
  * @param name name of the event
  * @param event event payload
  */
-export function emit<K extends keyof NextcloudEvents>(
+export function emit<K extends keyof AsyncNextcloudEvents>(
 	name: K,
-	...event: IsUndefined<NextcloudEvents[K]> extends true
-		? []
-		: [NextcloudEvents[K]]
-): void {
-	getBus().emit(name, ...event)
+	...event: EventArg<AsyncNextcloudEvents, K>
+) {
+	return bus.emit(name, ...event)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const isOne = (x: any): x is 1 => x === 1
+
+/**
+ * Lax parsing of the all-settled result with only minimal error diagnostics.
+ *
+ * @param result Promise or fulfilled result of Promise.allSettled()
+ *
+ * @param count Default 1, how many items to expect at least.
+ *
+ * @return Data items of just the first data item if count === 1.
+ */
+export async function getEmitResult<
+	K extends keyof AsyncNextcloudEvents,
+	N extends number = 1,
+>(result: ReturnType<typeof emit<K>> | Awaited<ReturnType<typeof emit<K>>>, count?: N): Promise<N extends 1 ? AsyncNextcloudEvents[K]['res'] : AsyncNextcloudEvents[K]['res'][]> {
+	const awaitedResult = await result
+	const values = awaitedResult.filter((item) => item.status === 'fulfilled').map((item) => item.value)
+
+	if (values.length < (count ?? 1)) {
+		throw new Error('Not enough fulfilled data items in Promise.allSettled() result.')
+	}
+	// @ts-expect-error 2322 Return type deduction mismatch, unclear why.
+	return isOne(count ?? 1) ? values[0] : values
+}
+
+/**
+ * Emit an event and fetch the first result available. Despite its
+   name this function is (and must be) async and hence returns a
+   promise which has to be awaited for in order to get hold of the
+   actual value.
+ *
+ * @param name name of the event
+ * @param event event payload
+ */
+export async function awaitEmit<K extends keyof AsyncNextcloudEvents>(name: K, ...event: EventArg<AsyncNextcloudEvents, K>) {
+	const result = emit(name, ...event)
+	return getEmitResult<K>(result)
+}
+
+/**
+ * Unsubscribe all subscribers for an event.
+ *
+ * @param name name of the event
+ */
+export function unsubscribeAll<K extends keyof AsyncNextcloudEvents>(name: K): void {
+	bus.unsubscribeAll(name)
+}
+
+/**
+ * Check if the given event has any subscribers.
+ *
+ * @param name The name of the event to examine.
+ */
+export function hasSubscriptions<K extends keyof AsyncNextcloudEvents>(name: K): boolean {
+	return bus.hasSubscriptions(name)
 }

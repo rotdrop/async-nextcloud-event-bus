@@ -1,16 +1,21 @@
 /*!
- * SPDX-FileCopyrightText: 2019 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-FileCopyrightText: 2019, 2025, 2026 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-export type Event = object | number | string | boolean | null | undefined
+export type EventArgument = object | number | string | boolean | null | undefined;
+
+export type EventSpec = {
+  arg?: EventArgument,
+  res?: unknown,
+}
 
 /**
  * Generic events mapping, fallback if no explicit types events are defined
  *
- * @see NextcloudEvents
+ * @see AsyncNextcloudEvents
  */
-export type GenericEvents = Record<string | symbol, Event>
+export type GenericEvents = Record<string | symbol, EventSpec>
 
 /**
  * Nextcloud EventBus events
@@ -20,8 +25,8 @@ export type GenericEvents = Record<string | symbol, Event>
  * ```ts
  * // event-bus.d.ts
  * // Extend the Nextcloud events interface for your custom event
- * declare module '@nextcloud/event-bus' {
- *     export interface NextcloudEvents {
+ * declare module '@rotdrop/async-nextcloud-event-bus' {
+ *     export interface AsyncNextcloudEvents {
  *         // mapping of 'event name' => 'event type'
  *         'my-event': { foo: number, bar: boolean }
  *     }
@@ -29,11 +34,11 @@ export type GenericEvents = Record<string | symbol, Event>
  * export {}
  *
  * // your-code.ts
- * import { subscribe } from '@nextcloud/event-bus'
+ * import { subscribe } from '@rotdrop/async-nextcloud-event-bus'
  * // Here the type of 'params' is inferred automatically
  * subscribe('my-event', (params) => { console.debug(params.foo, params.bar) })
  * ```
  */
-export interface NextcloudEvents {
-	[eventName: string | symbol]: Event
+export interface AsyncNextcloudEvents {
+	[eventName: string | symbol]: EventSpec
 }

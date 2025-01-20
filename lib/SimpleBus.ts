@@ -1,16 +1,16 @@
 /*!
- * SPDX-FileCopyrightText: 2019 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-FileCopyrightText: 2019, 2025, 2026 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { GenericEvents, NextcloudEvents } from './Event.js'
-import type { EventBus } from './EventBus.js'
+import type { GenericEvents, AsyncNextcloudEvents } from './Event.js'
+import type { EventBus, EventArg } from './EventBus.js'
 import type { EventHandler } from './EventHandler.js'
-import type { IsUndefined } from './types.ts'
 
-export class SimpleBus<E extends GenericEvents = NextcloudEvents>
-implements EventBus<E> {
-	private handlers = new Map<keyof E, EventHandler<E[keyof E]>[]>()
+export class SimpleBus<E extends GenericEvents = AsyncNextcloudEvents>
+	implements EventBus<E>
+{
+	private handlers: { [K in keyof E]: EventHandler<E[K]>[] } = <typeof this.handlers>{};
 
 	getVersion(): string {
 		return PACKAGE_VERSION
@@ -19,34 +19,44 @@ implements EventBus<E> {
 	subscribe<EventName extends keyof E>(
 		name: EventName,
 		handler: EventHandler<E[EventName]>,
-	): void {
-		this.handlers.set(
-			name,
-			(this.handlers.get(name) || []).concat(handler as EventHandler<E[keyof E]>),
-		)
+	) {
+		this.handlers[name] = (this.handlers[name] || []).concat(handler)
+		return handler
 	}
 
 	unsubscribe<EventName extends keyof E>(
 		name: EventName,
 		handler: EventHandler<E[EventName]>,
 	): void {
-		this.handlers.set(
-			name,
-			(this.handlers.get(name) || []).filter((h) => h !== handler),
-		)
+		this.handlers[name] = (this.handlers[name] || []).filter((h) => h !== handler)
+	}
+
+	unsubscribeAll<EventName extends keyof E>(
+		name: EventName,
+	): void {
+		delete this.handlers[name]
+	}
+
+	hasSubscriptions<EventName extends keyof E>(
+		name: EventName,
+	): boolean {
+		return !!(this.handlers[name]?.length)
 	}
 
 	emit<EventName extends keyof E>(
 		name: EventName,
-		...event: IsUndefined<E[EventName]> extends true ? [] : [E[EventName]]
-	): void {
-		const handlers = this.handlers.get(name) || []
-		handlers.forEach((h) => {
+		...event: EventArg<E, EventName>
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	) {
+		const handlers = this.handlers[name] || []
+		const results = handlers.map(async (h) => {
 			try {
-				(h as EventHandler<(typeof event)[0]>)(event[0])
+        return await h(event[0])
 			} catch (e) {
 				console.error('could not invoke event listener', e)
+				throw e
 			}
 		})
+		return Promise.allSettled(results)
 	}
 }

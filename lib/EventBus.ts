@@ -1,19 +1,16 @@
-/*!
- * SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
+/**
+ * SPDX-FileCopyrightText: 2024, 2025, 2026 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { GenericEvents, NextcloudEvents } from './Event.ts'
-import type { EventHandler } from './EventHandler.ts'
+import type { GenericEvents, AsyncNextcloudEvents } from './Event'
+import type { EventHandler, EventArgument } from './EventHandler'
 import type { IsUndefined } from './types.ts'
 
-export interface EventBus<E extends GenericEvents = NextcloudEvents> {
-	/**
-	 * Get the version of this event bus instance
-	 * This is used for compatibility checking
-	 */
-	getVersion(): string
+export type EventArg<E extends GenericEvents, EventName extends keyof E> =
+	IsUndefined<EventArgument<E[EventName]> > extends true ? [] : [EventArgument<E[EventName]>];
 
+export interface EventBus<E extends GenericEvents = AsyncNextcloudEvents> {
 	/**
 	 * Subscribe the event bus
 	 *
@@ -23,7 +20,7 @@ export interface EventBus<E extends GenericEvents = NextcloudEvents> {
 	subscribe<EventName extends keyof E>(
 		name: EventName,
 		handler: EventHandler<E[EventName]>,
-	): void
+	): EventHandler<E[EventName]>
 
 	/**
 	 * Unsubscribe a handler on one event from the event bus
@@ -37,6 +34,22 @@ export interface EventBus<E extends GenericEvents = NextcloudEvents> {
 	): void
 
 	/**
+	 * Unsubscribe all handlers for the given event name.
+	 * @param name Name of the event to unsubscribe
+	 */
+	unsubscribeAll<EventName extends keyof E>(
+		name: EventName,
+	): void
+
+	/**
+	 * Check whether there are currently handlers installed for name.
+	 * @param name Name of the event to unsubscribe
+	 */
+	hasSubscriptions<EventName extends keyof E>(
+		name: EventName,
+	): boolean
+
+	/**
 	 * Emit an event on the event bus
 	 *
 	 * @param name Name of the event to emit
@@ -44,6 +57,7 @@ export interface EventBus<E extends GenericEvents = NextcloudEvents> {
 	 */
 	emit<EventName extends keyof E>(
 		name: EventName,
-		...event: IsUndefined<E[EventName]> extends true ? [] : [E[EventName]]
-	): void
+		...event: EventArg<E, EventName>
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	): Promise<PromiseSettledResult<E[EventName]['res']>[]>
 }
