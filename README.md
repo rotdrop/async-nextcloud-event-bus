@@ -3,7 +3,11 @@
   - SPDX-License-Identifier: CC0-1.0
 -->
 
-# @nextcloud/event-bus
+# async-nextcloud-event-bus
+
+Just like the [Nextcloud Event
+Bus](https://github.com/nextcloud-libraries/nextcloud-event-bus), but
+with an async emit function which uses Promise.allSettled().
 
 [![REUSE status](https://api.reuse.software/badge/github.com/nextcloud-libraries/nextcloud-event-bus)](https://api.reuse.software/info/github.com/nextcloud-libraries/nextcloud-event-bus)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/nextcloud/nextcloud-event-bus/node.yml?branch=master)](https://github.com/nextcloud/nextcloud-event-bus/actions/workflows/node.yml?query=branch%3Amaster) [![Code coverage](https://img.shields.io/codecov/c/gh/nextcloud/nextcloud-event-bus/master)](https://app.codecov.io/gh/nextcloud/nextcloud-event-bus) [![npm](https://img.shields.io/npm/v/@nextcloud/event-bus.svg)](https://www.npmjs.com/package/@nextcloud/event-bus)
