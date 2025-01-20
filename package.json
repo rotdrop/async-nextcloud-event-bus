@@ -1,14 +1,14 @@
 {
-  "name": "@nextcloud/event-bus",
-  "version": "3.3.3",
+  "name": "@rotdrop/async-nextcloud-event-bus",
+  "version": "0.0.1",
   "description": "A simple event bus to communicate between Nextcloud components.",
   "keywords": [
     "nextcloud"
   ],
-  "homepage": "https://github.com/nextcloud/nextcloud-event-bus#readme",
+  "homepage": "https://github.com/rotdrop/async-nextcloud-event-bus.git#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nextcloud/nextcloud-event-bus"
+    "url": "https://github.com/rotdrop/async-nextcloud-event-bus.git"
   },
   "license": "GPL-3.0-or-later",
   "author": "Nextcloud GmbH and Nextcloud contributors",
