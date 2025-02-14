@@ -53,7 +53,7 @@ export class SimpleBus<E extends GenericEvents = AsyncNextcloudEvents>
 			try {
         return await h(event[0])
 			} catch (e) {
-				console.error('could not invoke event listener', e)
+				console.error('Could not invoke event listener', name, e, h)
 				throw e
 			}
 		})
