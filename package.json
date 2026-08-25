@@ -60,13 +60,11 @@
     "packageManager": [
       {
         "name": "npm",
-        "onFail": "error",
         "version": "^11.3.0"
       }
     ],
     "runtime": {
       "name": "node",
-      "onFail": "error",
       "version": "^24.0.0"
     }
   },
