@@ -26,6 +26,7 @@
     "dist/"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "vite --mode production build",
     "build:doc": "typedoc --out dist/doc lib/index.ts && touch dist/doc/.nojekyll",
     "dev": "vite --mode development build",
