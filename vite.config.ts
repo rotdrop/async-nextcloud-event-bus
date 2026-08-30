@@ -1,5 +1,5 @@
 /*!
- * SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
+ * SPDX-FileCopyrightText: 2024, 2026 Nextcloud GmbH and Nextcloud contributors
  * SPDX-License-Identifier: CC0-1.0
  */
 
@@ -14,6 +14,9 @@ export default createLibConfig(
 		libraryFormats: ['cjs', 'es'],
 		replace: {
 			PACKAGE_VERSION: JSON.stringify(version),
+		},
+		DTSPluginOptions: {
+			insertTypesEntry: true,
 		},
 	},
 )
